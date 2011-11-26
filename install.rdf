@@ -4,19 +4,19 @@
 	xmlns:em="http://www.mozilla.org/2004/em-rdf#">
 	
 	<Description about="urn:mozilla:install-manifest">
-		<em:id>http-request@anon21.mozilla.org</em:id>
+		<em:id>request-filter@anon21.mozilla.org</em:id>
 		<em:version>0.1.0</em:version>
 		<em:type>2</em:type>
-		<em:name>http-request</em:name>
-		<em:description>HTTP-request</em:description>
+		<em:name>request-filter</em:name>
+		<em:description>A HTTP-request filtering extension.</em:description>
 		<em:creator>anon21</em:creator>
 		<em:bootstrap>true</em:bootstrap>
 		
 		<em:localized>
 			<Description>
 				<em:locale>ja</em:locale>
-				<em:name>http-request</em:name>
-				<em:description>HTTPリクエスト</em:description>
+				<em:name>request-filter</em:name>
+				<em:description>HTTPリクエストをフィルタリングします．</em:description>
 			</Description>
 		</em:localized>
 		
