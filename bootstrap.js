@@ -1,40 +1,70 @@
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+
+Cu.import("resource://gre/modules/Services.jsm");
 
 var RequestFilter;
 
 function clog(msg) {
-	Components.classes["@mozilla.org/consoleservice;1"]
-		.getService(Components.interfaces.nsIConsoleService)
+	Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService)
 		.logStringMessage(msg);
 }
 
-function load(moduleName, resourceURI) {
-	var ioService = Components.classes["@mozilla.org/network/io-service;1"]  
-		.getService(Components.interfaces.nsIIOService);
+var _prefsObserver = {
+	observe: function(subject, topic, data) {
+		if( topic == "nsPref:changed" ) {
+			switch( data ) {
+			case "extensions.requestFilter.targets":
+				RequestFilter.reloadTargets();
+				break;
+			}
+		}
+	},
 	
+	register: function() {
+		Services.prefs.addObserver("extensions.requestFilter.", this, false);
+	},
+	
+	unregister: function() {
+		Services.prefs.removeObserver("extensions.requestFilter.", this);
+	},
+};
+
+function load(moduleName, resourceURI) {
+	var ioService = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
 	var moduleURI = ioService.newURI("modules/" + moduleName + ".js", null, resourceURI);
 	
 	var ns = {};
-	Components.utils.import(moduleURI.spec, ns);
+	Cu.import(moduleURI.spec, ns);
 	
 	return ns;
 }
 
 function startup(data, reason) {
-	clog("request-filter startup.");
 	RequestFilter = load("request-filter", data.resourceURI);
 	RequestFilter.attachFilter();
+	
+	_prefsObserver.register();
 }
 
 function shutdown(data, reason) {
-	clog("request-filter shutdown.");
+	_prefsObserver.unregister();
+	
 	RequestFilter.detachFilter();
 	RequestFilter = undefined;
 }
 
 function install(data, reason) {
-	clog("request-filter installed.");
+	// set default preferences
+	var branch = Services.prefs.getBranch("extensions.requestFilter.");
+	
+	if( !branch.prefHasUserValue("targets") )
+		branch.setCharPref("targets", "");
 }
 
 function uninstall(data, reason) {
-	clog("request-filter uninstalled.");
+	// remove preferences
+	// var branch = Services.prefs.getBranch("extensions.requestFilter.");
+	// branch.clearUserPref("targets");
 }

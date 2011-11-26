@@ -1,14 +1,14 @@
-
-var EXPORTED_SYMBOLS = ["attachFilter", "detachFilter"];
+var EXPORTED_SYMBOLS = ["attachFilter", "detachFilter", "reloadTargets"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
+const Cu = Components.utils;
 const Cr = Components.results;
 
-var _targets = [
-	"doubleclick.net"
-];
-var _targetsCache = {};
+Cu.import("resource://gre/modules/Services.jsm");
+
+var _targets;
+var _targetsCache;
 
 function _testHostname(hostname) {
 	if( hostname in _targetsCache )
@@ -44,6 +44,23 @@ function _filterHttpRequest(httpChannel) {
 	}
 }
 
+function _loadTargets() {
+	try {
+		var branch = Services.prefs.getBranch("extensions.requestFilter.");
+		var targetsString = branch.getCharPref("targets");
+		_targets = targetsString.split(";");
+	} catch(e) {
+		_targets = [];
+	}
+	
+	_targetsCache = {};
+}
+
+function unloadTargets() {
+	_targets = undefined;
+	_targetsCache = undefined;
+}
+
 var _httpRequestObserver = {
 	observe: function (subject, topic, data) {
 		if( topic == "http-on-modify-request" ) {
@@ -65,9 +82,15 @@ var _httpRequestObserver = {
 };
 
 function attachFilter() {
+	_loadTargets();
 	_httpRequestObserver.register();
 }
 
 function detachFilter() {
 	_httpRequestObserver.unregister();
+	_unloadTargets();
+}
+
+function reloadTargets() {
+	_loadTargets();
 }
