@@ -13,6 +13,9 @@ var _prefsObserver = {
 			case "extensions.requestFilter.targets":
 				RequestFilter.reloadTargets();
 				break;
+			case "extensions.requestFilter.reportMode":
+				RequestFilter.reloadReportMode();
+				break;
 			}
 		}
 	},
@@ -56,10 +59,14 @@ function install(data, reason) {
 	
 	if( !branch.prefHasUserValue("targets") )
 		branch.setCharPref("targets", "");
+	
+	if( !branch.prefHasUserValue("reportMode") )
+		branch.setBoolPref("reportMode", false)
 }
 
 function uninstall(data, reason) {
 	// remove preferences
 	// var branch = Services.prefs.getBranch("extensions.requestFilter.");
 	// branch.clearUserPref("targets");
+	// branch.clearUserPref("reportMode");
 }

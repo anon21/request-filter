@@ -1,4 +1,4 @@
-var EXPORTED_SYMBOLS = ["attachFilter", "detachFilter", "reloadTargets"];
+var EXPORTED_SYMBOLS = ["attachFilter", "detachFilter", "reloadTargets", "reloadReportMode"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -9,20 +9,20 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 var _targets;
 var _targetsCache;
+var _reportMode;
 
 function _testHostname(hostname) {
 	if( hostname in _targetsCache )
 		return _targetsCache[hostname];
 	
-	for(var i = 0; i < _targets.length; ++i) {
-		var j = hostname.lastIndexOf(".", hostname.length - 1)
+	var i = hostname.lastIndexOf(".", hostname.length - 1);
+	
+	while( i != -1 ) {
+		i = hostname.lastIndexOf(".", i - 1);
+		var subpart = hostname.slice(i + 1);
 		
-		while( true ) {
-			j = hostname.lastIndexOf(".", j - 1);
-			if( j == -1 )
-				break;
-			
-			if( hostname.slice(j + 1) == _targets[i] ) {
+		for(var j = 0; j < _targets.length; ++j) {
+			if( subpart == _targets[j] ) {
 				_targetsCache[hostname] = true;
 				return true;
 			}
@@ -34,15 +34,21 @@ function _testHostname(hostname) {
 }
 
 function _filterHttpRequest(httpChannel) {
-	if( _testHostname(httpChannel.originalURI.host) ) {
-		httpChannel.cancel(Cr.NS_BINDING_ABORTED);
+	var b = _testHostname(httpChannel.originalURI.host);
+	
+	if( _reportMode ) {
+		Services.console.logStringMessage((b ? "[Blocked] " : "[Request] ")
+			+ httpChannel.originalURI.host);
+	}
+	
+	if( b ) {
+		httpChannel.cancel(Cr.NS_ERROR_FAILURE);
 	}
 }
 
 function _loadTargets() {
 	try {
-		var branch = Services.prefs.getBranch("extensions.requestFilter.");
-		var targetsString = branch.getCharPref("targets");
+		var targetsString = Services.prefs.getCharPref("extensions.requestFilter.targets");
 		_targets = targetsString.split(";");
 	} catch(e) {
 		_targets = [];
@@ -51,41 +57,51 @@ function _loadTargets() {
 	_targetsCache = {};
 }
 
-function unloadTargets() {
+function _unloadTargets() {
 	_targets = undefined;
 	_targetsCache = undefined;
 }
 
+function _loadReportMode() {
+	_reportMode = Services.prefs.getBoolPref("extensions.requestFilter.reportMode");
+}
+
+function _unloadReportMode() {
+	_reportMode = undefined;
+}
+
 var _httpRequestObserver = {
-	observe: function (subject, topic, data) {
+	observe: function(subject, topic, data) {
 		if( topic == "http-on-modify-request" ) {
 			_filterHttpRequest(subject.QueryInterface(Ci.nsIHttpChannel));
 		}
 	},
 	
-	get observerService() {
-		return Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
-	},
-	
 	register: function() {
-		this.observerService.addObserver(this, "http-on-modify-request", false);
+		Services.obs.addObserver(this, "http-on-modify-request", false);
 	},
 	
 	unregister: function() {
-		this.observerService.removeObserver(this, "http-on-modify-request");
+		Services.obs.removeObserver(this, "http-on-modify-request");
 	},
 };
 
 function attachFilter() {
 	_loadTargets();
+	_loadReportMode();
 	_httpRequestObserver.register();
 }
 
 function detachFilter() {
 	_httpRequestObserver.unregister();
 	_unloadTargets();
+	_unloadReportMode();
 }
 
 function reloadTargets() {
 	_loadTargets();
+}
+
+function reloadReportMode() {
+	_loadReportMode();
 }
