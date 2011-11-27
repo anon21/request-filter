@@ -14,9 +14,6 @@ function _testHostname(hostname) {
 	if( hostname in _targetsCache )
 		return _targetsCache[hostname];
 	
-	Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService)
-		.logStringMessage("Not cached: " + hostname);
-	
 	for(var i = 0; i < _targets.length; ++i) {
 		var j = hostname.lastIndexOf(".", hostname.length - 1)
 		
@@ -39,8 +36,6 @@ function _testHostname(hostname) {
 function _filterHttpRequest(httpChannel) {
 	if( _testHostname(httpChannel.originalURI.host) ) {
 		httpChannel.cancel(Cr.NS_BINDING_ABORTED);
-		Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService)
-			.logStringMessage("Blocked: " + httpChannel.originalURI.host);
 	}
 }
 

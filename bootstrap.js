@@ -6,11 +6,6 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 var RequestFilter;
 
-function clog(msg) {
-	Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService)
-		.logStringMessage(msg);
-}
-
 var _prefsObserver = {
 	observe: function(subject, topic, data) {
 		if( topic == "nsPref:changed" ) {
@@ -31,7 +26,7 @@ var _prefsObserver = {
 	},
 };
 
-function load(moduleName, resourceURI) {
+function _load(moduleName, resourceURI) {
 	var ioService = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
 	var moduleURI = ioService.newURI("modules/" + moduleName + ".js", null, resourceURI);
 	
@@ -42,7 +37,7 @@ function load(moduleName, resourceURI) {
 }
 
 function startup(data, reason) {
-	RequestFilter = load("request-filter", data.resourceURI);
+	RequestFilter = _load("request-filter", data.resourceURI);
 	RequestFilter.attachFilter();
 	
 	_prefsObserver.register();
